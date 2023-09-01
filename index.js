@@ -104,6 +104,22 @@ app.put("/alterar-funcionario/:id", (req, res) =>{
     );
 });
 
+app.delete("/funcionarios/:id", (req, res) => {
+    const idFuncionario = req.params.id;
+
+    db.query(
+        "DELETE FROM tbfuncionario WHERE id = ?",
+        [idFuncionario],
+        (err, result) => {
+            if (err) {
+                res.send(err);
+            } else {
+                res.send({ msg: "Funcionário deletado com sucesso" });
+            }
+        }
+    );
+});
+
 
 app.listen(3001, () => {
     console.log("rodando")
