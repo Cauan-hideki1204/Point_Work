@@ -74,7 +74,18 @@ app.post('/login', (req,res) => {
             res.send({msg: "Usuário não encontrado"})
         }
     });
-})
+});
+
+app.get('/funcionarios', (req,res) => {
+    db.query("SELECT nome, cpf FROM tbfuncionario", (err, result) =>{
+        if(err){
+            res.send(err);
+        } else {
+            res.send(result);
+        }
+    });
+});
+
 
 app.listen(3001, () => {
     console.log("rodando")
