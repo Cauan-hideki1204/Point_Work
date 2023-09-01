@@ -86,6 +86,24 @@ app.get('/funcionarios', (req,res) => {
     });
 });
 
+app.put("/alterar-funcionario/:id", (req, res) =>{
+    const idFuncionario = req.params.id;
+    const novoNome = req.body.novoNome;
+    const novoCpf = req.body.novoCpf;
+
+    db.query(
+        "UPDATE tbfuncionario SET nome = ?, cpf = ? WHERE id = ?",
+        [novoNome, novoCpf, idFuncionario],
+        (err, result) => {
+            if (err){
+                res.send(err);
+            } else {
+                res.send({ msg: "Funcionário alterado com sucesso" });
+            }
+        }
+    );
+});
+
 
 app.listen(3001, () => {
     console.log("rodando")
