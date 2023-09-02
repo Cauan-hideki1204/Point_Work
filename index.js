@@ -211,6 +211,21 @@ app.post('/cartao-ponto/:id', (req, res) => {
     );
 });
 
+// Obter Registros do dia 
+app.get("/cartao-ponto/:id", (req,res) => {
+    const idFuncionario = req.params.id
+    db.query(
+        'SELECT hora_entrada, hora_saida_intervalo, hora_entrada_intervalo, hora_saida FROM tbregistroponto WHERE id_funcionario = ?',
+        [idFuncionario], (err, result) => {
+            if(err){
+                console.log("Erro ao obter registros de ponto", err);
+                res.send(err);
+            } else {
+                res.send(result);
+            }
+        }
+    );
+});
 app.listen(3001, () => {
     console.log("rodando")
 })
