@@ -15,7 +15,34 @@ const db = mysql.createPool({
 app.use(express.json());
 app.use(cors());
 
-app.post("/register", (req, res) => {
+app.post("/cadastrar-cargo", (req,res) => {
+    const cargo = req.body.cargo;
+    const salario_base = req.body.salario_base;
+    const carga_horaria = req.body.carga_horaria;
+
+    db.query("SELECT * FROM tbcargo WHERE cargo = ?", [cargo],
+    (err, result) => {
+        if (err) {
+            res.send(err);
+        }
+        if (result.length == 0) {
+            db.query(
+                'INSERT INTO tbcargo (cargo, salario_base, carga_horaria) VALUES (?, ?, ?)',
+                [cargo,salario_base,carga_horaria],
+                (err, result) => {
+                    if(err) {
+                        res.send(err);
+                    }
+                    res.send({msg : "Cargo " + cargo + " cadastrado com sucesso"});
+                }
+            );
+        } else {
+            res.send({ msg : "Cargo " + cargo + " já cadastrado anteriormente"})
+        }
+    });
+});
+
+app.post("/registrar", (req, res) => {
     const email = req.body.email;
     const senha = req.body.senha;
     const nome = req.body.nome;
