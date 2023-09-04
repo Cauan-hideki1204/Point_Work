@@ -11,17 +11,46 @@ const db = mysql.createPool({
     password: "1234",
     database: "point_work"
 })
+const horaAtual = new Date(); // Obtém a hora atual
 
 app.use(express.json());
 app.use(cors());
 
-app.post("/register", (req, res) => {
+app.post("/cadastrar-cargo", (req,res) => {
+    const cargo = req.body.cargo;
+    const salario_base = req.body.salario_base;
+    const carga_horaria = req.body.carga_horaria;
+
+    db.query("SELECT * FROM tbcargo WHERE cargo = ?", [cargo],
+    (err, result) => {
+        if (err) {
+            res.send(err);
+        }
+        if (result.length == 0) {
+            db.query(
+                'INSERT INTO tbcargo (cargo, salario_base, carga_horaria) VALUES (?, ?, ?)',
+                [cargo,salario_base,carga_horaria],
+                (err, result) => {
+                    if(err) {
+                        res.send(err);
+                    }
+                    res.send({msg : "Cargo " + cargo + " cadastrado com sucesso"});
+                }
+            );
+        } else {
+            res.send({ msg : "Cargo " + cargo + " já cadastrado anteriormente"})
+        }
+    });
+});
+
+app.post("/registrar", (req, res) => {
     const email = req.body.email;
     const senha = req.body.senha;
     const nome = req.body.nome;
     const cpf = req.body.cpf;
-
-    console.log(req);
+    const idCargo = req.body.cargo;
+    const dataAdimissao = req.body.admissao;
+    const dataDemissao = req.body.demissao;
 
     db.query("SELECT * FROM tbfuncionario WHERE email = ?", [email],
         (err, result) => {
@@ -31,8 +60,8 @@ app.post("/register", (req, res) => {
             if (result.length == 0) {
                 bcrypt.hash(senha, saltRounds, (err, hash) => {
                     db.query(
-                        "INSERT INTO tbfuncionario (nome, email, senha, cpf) VALUES (?, ?, ?, ?)",
-                        [nome, email, hash, cpf],
+                        "INSERT INTO tbfuncionario (nome, email, senha, cpf, id_cargo, data_admissao, data_demissao) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        [nome, email, hash, cpf, idCargo, dataAdimissao, dataDemissao],
                         (err, result) => {
                             if (err) {
                                 res.send(err);
@@ -59,7 +88,7 @@ app.post('/login', (req, res) => {
                 res.send(err);
             }
             if (result.length > 0) {
-                bcrypt.compare(senha, result[0].senha, (erro, result) => {
+                bcrypt.compare(senha, result[0].senha, (err, result) => {
                     if (err) {
                         res.send(err);
                     }
@@ -77,7 +106,7 @@ app.post('/login', (req, res) => {
 });
 
 app.get('/funcionarios', (req, res) => {
-    db.query("SELECT nome, cpf FROM tbfuncionario", (err, result) => {
+    db.query("SELECT id, nome, email, cpf FROM tbfuncionario", (err, result) => {
         if (err) {
             res.send(err);
         } else {
@@ -90,6 +119,7 @@ app.put("/alterar-funcionario/:id", (req, res) => {
     const idFuncionario = req.params.id;
     const novoNome = req.body.novoNome;
     const novoCpf = req.body.novoCpf;
+    const novoEmail = req.body.novoEmail;
 
     const sqlParts = [];
     const sqlValues = [];
@@ -97,6 +127,11 @@ app.put("/alterar-funcionario/:id", (req, res) => {
     if (novoNome) {
         sqlParts.push("nome = ?");
         sqlValues.push(novoNome);
+    }
+
+    if (novoEmail) {
+        sqlParts.push("email = ?");
+        sqlValues.push(novoEmail);
     }
 
     if (novoCpf) {
@@ -140,7 +175,6 @@ app.delete("/funcionarios/:id", (req, res) => {
 
 app.post('/cartao-ponto/:id', (req, res) => {
     const idFuncionario = req.params.id;
-    const horaAtual = new Date(); // Obtém a hora atual
 
     // Verificar se o funcionário já registrou o ponto de entrada hoje
     db.query(
@@ -226,6 +260,12 @@ app.get("/cartao-ponto/:id", (req,res) => {
         }
     );
 });
+
+app.post("/registrar-avisos/:id", (req,res) => {
+    const idFuncionario = req.params.id;
+
+})
+
 app.listen(3001, () => {
     console.log("rodando")
 })
