@@ -11,37 +11,40 @@ const db = mysql.createPool({
     password: "1234",
     database: "dbpointwork"
 })
-console.log('db',db)
-const horaAtual = new Date(); // Obtém a hora atual
+let horaAtual = new Date();
+let dia = horaAtual.getDate();
+let mes = horaAtual.getMonth() + 1;
+let ano = horaAtual.getFullYear();
+let dataFormatada = `${ano}-${mes < 10 ? '0' + mes : mes}-${dia < 10 ? '0' + dia : dia}`;
 
 app.use(express.json());
 app.use(cors());
 
-app.post("/cadastrar-cargo", (req,res) => {
+app.post("/cadastrar-cargo", (req, res) => {
     const cargo = req.body.cargo;
     const salario_base = req.body.salario_base;
     const carga_horaria = req.body.carga_horaria;
 
     db.query("SELECT * FROM tbcargo WHERE cargo = ?", [cargo],
-    (err, result) => {
-        if (err) {
-            res.send(err);
-        }
-        if (result.length == 0) {
-            db.query(
-                'INSERT INTO tbcargo (cargo, salario_base, carga_horaria) VALUES (?, ?, ?)',
-                [cargo,salario_base,carga_horaria],
-                (err, result) => {
-                    if(err) {
-                        res.send(err);
+        (err, result) => {
+            if (err) {
+                res.send(err);
+            }
+            if (result.length == 0) {
+                db.query(
+                    'INSERT INTO tbcargo (cargo, salario_base, carga_horaria) VALUES (?, ?, ?)',
+                    [cargo, salario_base, carga_horaria],
+                    (err, result) => {
+                        if (err) {
+                            res.send(err);
+                        }
+                        res.send({ msg: "Cargo " + cargo + " cadastrado com sucesso" });
                     }
-                    res.send({msg : "Cargo " + cargo + " cadastrado com sucesso"});
-                }
-            );
-        } else {
-            res.send({ msg : "Cargo " + cargo + " já cadastrado anteriormente"})
-        }
-    });
+                );
+            } else {
+                res.send({ msg: "Cargo " + cargo + " já cadastrado anteriormente" })
+            }
+        });
 });
 
 app.post("/registrar", (req, res) => {
@@ -218,24 +221,24 @@ app.post('/cartao-ponto/:id', (req, res) => {
                     'UPDATE tbregistro_ponto SET hora_entrada_intervalo = ? WHERE id_funcionario = ?',
                     [horaAtual, idFuncionario],
                     (err, result) => {
-                        if(err){
+                        if (err) {
                             console.error('Erro ao atualizar ponto de entrada do intervalo', err);
-                            return res.status(500).json({ msg:'Erro no servidor verificação entrada do intervalo'});
+                            return res.status(500).json({ msg: 'Erro no servidor verificação entrada do intervalo' });
                         }
-                        res.json({ msg:'Ponto de entrada do intevalo registrado com sucesso'});
+                        res.json({ msg: 'Ponto de entrada do intevalo registrado com sucesso' });
                     }
                 );
-            } else if (result.length === 1 && !result[0].hora_saida){
+            } else if (result.length === 1 && !result[0].hora_saida) {
                 //O funcionário já registrou a entrada do intervalo, mas não resgistrou a saída
                 db.query(
                     'UPDATE tbregistro_ponto SET hora_saida = ? WHERE id_funcionario = ?',
                     [horaAtual, idFuncionario],
                     (err, result) => {
-                        if(err) {
+                        if (err) {
                             console.error('Erro ao atualizar ponto de saida', err);
-                            return res.status(500).json({ msg: 'Erro no servidor verificação saída'});
+                            return res.status(500).json({ msg: 'Erro no servidor verificação saída' });
                         }
-                        res.json({ msg: 'Ponto de saída registrado com sucesso'});
+                        res.json({ msg: 'Ponto de saída registrado com sucesso' });
                     }
                 );
             } else {
@@ -247,12 +250,12 @@ app.post('/cartao-ponto/:id', (req, res) => {
 });
 
 // Obter Registros do dia 
-app.get("/cartao-ponto/:id", (req,res) => {
+app.get("/cartao-ponto/:id", (req, res) => {
     const idFuncionario = req.params.id
     db.query(
         'SELECT hora_entrada, hora_saida_intervalo, hora_entrada_intervalo, hora_saida FROM tbregistro_ponto WHERE id_funcionario = ?',
         [idFuncionario], (err, result) => {
-            if(err){
+            if (err) {
                 console.log("Erro ao obter registros de ponto", err);
                 res.send(err);
             } else {
@@ -262,10 +265,70 @@ app.get("/cartao-ponto/:id", (req,res) => {
     );
 });
 
-app.post("/registrar-avisos/:id", (req,res) => {
+app.post("/registrar-avisos/:id", (req, res) => {
     const idFuncionario = req.params.id;
+    const tituloAviso = req.body.titulo;
+    const conteudoAviso = req.body.conteudo;
+    if (idFuncionario || tituloAviso || conteudoAviso != null) {
+        db.query(
+            'INSERT INTO tbavisos (titulo, conteudo, data_criacao, id_funcionario) VALUES (?, ?, ?, ?)',
+            [tituloAviso, conteudoAviso, dataFormatada, idFuncionario],
+            (err, result) => {
+                if (err) {
+                    console.error("erro aqui", err);
+                    res.send(err);
+                } else {
+                    res.send({ msg: "Aviso registrado" })
+                }
+            }
 
-})
+        );
+    } else {
+        res.send({ msg: "Todos os campos devem ser preenchidos" })
+    }
+});
+
+app.get("/avisos", (req, res) => {
+    db.query(
+        'SELECT id, titulo, conteudo, data_criacao FROM tbavisos',
+        (err, result) => {
+            if (err) {
+                res.send(err);
+            } else {
+                res.send(result);
+            }
+        }
+    );
+});
+
+app.delete('/avisos/delete/:id', (req, res) => {
+    const idAviso = req.params.id;
+
+    db.query(
+        'DELETE FROM tbavisos WHERE id = ?',
+        [idAviso],
+        (err, result) => {
+            if (err) {
+                res.send(err);
+            } else {
+                res.send({ msg: 'Aviso deletado' });
+            }
+        }
+    );
+});
+
+app.delete('/avisos/deletar-todos', (req,res) =>{
+    db.query(
+        'DELETE FROM tbavisos',
+        (err,result) => {
+            if(err) {
+                res.send(err);
+            } else {
+                res.send({msg: 'Todos os avisos foram deletados'});
+            }
+        }
+    );
+});
 
 app.listen(3001, () => {
     console.log("rodando")
