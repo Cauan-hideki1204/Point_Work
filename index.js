@@ -9,8 +9,9 @@ const db = mysql.createPool({
     host: "localhost",
     user: "root",
     password: "1234",
-    database: "point_work"
+    database: "dbpointwork"
 })
+console.log('db',db)
 const horaAtual = new Date(); // Obtém a hora atual
 
 app.use(express.json());
@@ -178,7 +179,7 @@ app.post('/cartao-ponto/:id', (req, res) => {
 
     // Verificar se o funcionário já registrou o ponto de entrada hoje
     db.query(
-        'SELECT * FROM tbregistroponto WHERE id_funcionario = ? AND DATE(hora_entrada) = CURDATE()',
+        'SELECT * FROM tbregistro_ponto WHERE id_funcionario = ? AND DATE(hora_entrada) = CURDATE()',
         [idFuncionario, horaAtual],
         (err, result) => {
             if (err) {
@@ -189,7 +190,7 @@ app.post('/cartao-ponto/:id', (req, res) => {
             if (result.length === 0) {
                 // O funcionário ainda não registrou o ponto hoje, então registramos a entrada
                 db.query(
-                    'INSERT INTO tbregistroponto (id_funcionario, hora_entrada) VALUES (?, ?)',
+                    'INSERT INTO tbregistro_ponto (id_funcionario, hora_entrada) VALUES (?, ?)',
                     [idFuncionario, horaAtual],
                     (err, result) => {
                         if (err) {
@@ -201,7 +202,7 @@ app.post('/cartao-ponto/:id', (req, res) => {
             } else if (result.length === 1 && !result[0].hora_saida_intervalo) {
                 // O funcionário já registrou a entrada hoje, mas ainda não registrou a saída para o intervalo
                 db.query(
-                    'UPDATE tbregistroponto SET hora_saida_intervalo = ? WHERE id_funcionario = ?',
+                    'UPDATE tbregistro_ponto SET hora_saida_intervalo = ? WHERE id_funcionario = ?',
                     [horaAtual, idFuncionario],
                     (err, result) => {
                         if (err) {
@@ -214,7 +215,7 @@ app.post('/cartao-ponto/:id', (req, res) => {
             } else if (result.length === 1 && !result[0].hora_entrada_intervalo) {
                 // O funcionário já registrou a saida para o intervalo, mas ainda não registrou a entrada do intervalo
                 db.query(
-                    'UPDATE tbregistroponto SET hora_entrada_intervalo = ? WHERE id_funcionario = ?',
+                    'UPDATE tbregistro_ponto SET hora_entrada_intervalo = ? WHERE id_funcionario = ?',
                     [horaAtual, idFuncionario],
                     (err, result) => {
                         if(err){
@@ -227,7 +228,7 @@ app.post('/cartao-ponto/:id', (req, res) => {
             } else if (result.length === 1 && !result[0].hora_saida){
                 //O funcionário já registrou a entrada do intervalo, mas não resgistrou a saída
                 db.query(
-                    'UPDATE tbregistroponto SET hora_saida = ? WHERE id_funcionario = ?',
+                    'UPDATE tbregistro_ponto SET hora_saida = ? WHERE id_funcionario = ?',
                     [horaAtual, idFuncionario],
                     (err, result) => {
                         if(err) {
@@ -249,7 +250,7 @@ app.post('/cartao-ponto/:id', (req, res) => {
 app.get("/cartao-ponto/:id", (req,res) => {
     const idFuncionario = req.params.id
     db.query(
-        'SELECT hora_entrada, hora_saida_intervalo, hora_entrada_intervalo, hora_saida FROM tbregistroponto WHERE id_funcionario = ?',
+        'SELECT hora_entrada, hora_saida_intervalo, hora_entrada_intervalo, hora_saida FROM tbregistro_ponto WHERE id_funcionario = ?',
         [idFuncionario], (err, result) => {
             if(err){
                 console.log("Erro ao obter registros de ponto", err);
