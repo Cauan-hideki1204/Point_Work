@@ -193,7 +193,7 @@ app.post('/cartao-ponto/:id', (req, res) => {
             if (result.length === 0) {
                 // O funcionário ainda não registrou o ponto hoje, então registramos a entrada
                 db.query(
-                    'INSERT INTO tbregistro_ponto (id_funcionario, hora_entrada) VALUES (?, ?)',
+                    'INSERT INTO tbregistro_ponto (id_funcionario, hora_entrada, data) VALUES (?, ?, CURDATE())',
                     [idFuncionario, horaAtual],
                     (err, result) => {
                         if (err) {
