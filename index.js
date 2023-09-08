@@ -4,6 +4,8 @@ const mysql = require("mysql");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
 const saltRounds = 10;
+const {main, calcularHorasTrabalhadasEsteMes} = require("./funcoes");
+
 
 const db = mysql.createPool({
     host: "localhost",
@@ -317,19 +319,18 @@ app.delete('/avisos/delete/:id', (req, res) => {
     );
 });
 
-app.delete('/avisos/deletar-todos', (req,res) =>{
+app.delete('/avisos/deletar-todos', (req, res) => {
     db.query(
         'DELETE FROM tbavisos',
-        (err,result) => {
-            if(err) {
+        (err, result) => {
+            if (err) {
                 res.send(err);
             } else {
-                res.send({msg: 'Todos os avisos foram deletados'});
+                res.send({ msg: 'Todos os avisos foram deletados' });
             }
         }
     );
 });
 
-app.listen(3001, () => {
-    console.log("rodando")
-})
+main();
+calcularHorasTrabalhadasEsteMes(7);
