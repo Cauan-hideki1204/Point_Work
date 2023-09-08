@@ -332,5 +332,6 @@ app.delete('/avisos/deletar-todos', (req, res) => {
     );
 });
 
+
 main();
 calcularHorasTrabalhadasEsteMes(7);

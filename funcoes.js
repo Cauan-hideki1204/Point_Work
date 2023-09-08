@@ -49,6 +49,7 @@ function calcularHorasTrabalhadasEsteMes(idFuncionario) {
                         }
 
                         totalHorasTrabalhadasMes += totalHorasTrabalhadasDia;
+
                     }
                 }
             }
@@ -57,48 +58,61 @@ function calcularHorasTrabalhadasEsteMes(idFuncionario) {
         dataAtual.setDate(dataAtual.getDate() + 1);
     }
 
-    setTimeout(() => {
-        db.query(
-            'SELECT * FROM tbhorasextras WHERE id_funcionario = ? AND mes = ? AND ano = ?',
-            [idFuncionario, mes, ano],
-            (err, result) => {
-                if (err) {
-                    console.log(err);
-                } else {
+    db.query(
+        'SELECT carga_horaria_mensal FROM tbfuncionario WHERE id = ?',
+        [idFuncionario],
+        (err, result) => {
+            if(err) {
+                console.log(err);
+            } else {
+                let horasExtras = totalHorasTrabalhadasMes - result[0].carga_horaria_mensal;
+                console.log(result);
+                console.log(horasExtras);
 
-                    if (result.length > 0) {
-                        db.query(
-                            'UPDATE tbhorasextras SET quantidade_horas_extras = ? WHERE id_funcionario = ? AND mes = ? AND ano = ?',
-                            [totalHorasTrabalhadasMes, idFuncionario, mes, ano],
-                            (err, result) => {
-                                if (err){
-                                    console.log(err)
+                // Definir horasExtras no escopo superior para uso no setTimeout
+                setTimeout(() => {
+                    db.query(
+                        'SELECT * FROM tbhorasextras WHERE id_funcionario = ? AND mes = ? AND ano = ?',
+                        [idFuncionario, mes, ano],
+                        (err, result) => {
+                            if (err) {
+                                console.log(err);
+                            } else {
+
+                                if (result.length > 0) {
+                                    db.query(
+                                        'UPDATE tbhorasextras SET quantidade_horas_extras = ? WHERE id_funcionario = ? AND mes = ? AND ano = ?',
+                                        [horasExtras, idFuncionario, mes, ano],
+                                        (err, result) => {
+                                            if (err){
+                                                console.log(err)
+                                            }
+                                        }
+                                    )
+                                } else {
+                                    db.query(
+                                        'INSERT INTO tbhorasextras (id_funcionario, quantidade_horas_extras, mes, ano) VALUES (?, ?, ?, ?)',
+                                        [idFuncionario, horasExtras, mes, ano],
+                                        (err, result) => {
+                                            if(err){
+                                                console.log(err)
+                                            } 
+                                        }
+                                    )
                                 }
                             }
-                        )
-                    } else {
-                        db.query(
-                            'INSERT INTO tbhorasextras (id_funcionario, quantidade_horas_extras, mes, ano) VALUES (?, ?, ?, ?)',
-                            [idFuncionario, totalHorasTrabalhadasMes, mes, ano],
-                            (err, result) => {
-                                if(err){
-                                    console.log(err)
-                                } 
-                            }
-                        )
-                    }
-                }
+                        }
+                    )
+                }, 5000);
             }
-
-        )
-    }, 1000);
+        }
+    )
 }
 
 
 const hoje = new Date();
 const ano = hoje.getFullYear();
 const mes = hoje.getMonth() + 1;
-
 
 function main() {
 
