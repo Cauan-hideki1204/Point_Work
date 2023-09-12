@@ -4,7 +4,7 @@ const mysql = require("mysql");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
 const saltRounds = 10;
-const {main, calcularHorasTrabalhadasEsteMes} = require("./funcoes");
+const {calcularHorasTrabalhadasEsteMes} = require("./funcoes");
 
 
 const db = mysql.createPool({
@@ -111,9 +111,11 @@ app.post('/login', (req, res) => {
         });
 });
 
+
 app.get('/funcionarios', (req, res) => {
     db.query("SELECT id, nome, email, cpf FROM tbfuncionario", (err, result) => {
         if (err) {
+            console.error("erro aqui", err);
             res.send(err);
         } else {
             res.send(result);
@@ -332,6 +334,13 @@ app.delete('/avisos/deletar-todos', (req, res) => {
     );
 });
 
+async function main() {
+
+    app.listen(3001, () => {
+        console.log("rodando")
+    });
+    
+    await calcularHorasTrabalhadasEsteMes(7);
+}
 
 main();
-calcularHorasTrabalhadasEsteMes(7);
