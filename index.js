@@ -4,7 +4,8 @@ const mysql = require("mysql");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
 const saltRounds = 10;
-const {calcularHorasTrabalhadasEsteMes} = require("./funcoes");
+const {calcularHorasTrabalhadasEsteMes, pegarSalarioBase, pegarHorasExtras, calcularDescontos} = require("./funcoes");
+
 
 
 const db = mysql.createPool({
@@ -111,7 +112,6 @@ app.post('/login', (req, res) => {
         });
 });
 
-
 app.get('/funcionarios', (req, res) => {
     db.query("SELECT id, nome, email, cpf FROM tbfuncionario", (err, result) => {
         if (err) {
@@ -164,7 +164,6 @@ app.put("/alterar-funcionario/:id", (req, res) => {
     });
 });
 
-
 app.delete("/funcionarios/:id", (req, res) => {
     const idFuncionario = req.params.id;
 
@@ -191,6 +190,7 @@ app.post('/cartao-ponto/:id', (req, res) => {
         (err, result) => {
             if (err) {
                 console.error('Erro ao consultar registro de entrada:', err);
+
                 return res.status(500).json({ msg: 'Erro no servidor verificação entrada' });
             }
 
@@ -279,7 +279,7 @@ app.post("/registrar-avisos/:id", (req, res) => {
             [tituloAviso, conteudoAviso, dataFormatada, idFuncionario],
             (err, result) => {
                 if (err) {
-                    console.error("erro aqui", err);
+                    console.error("erro ao inserir aviso", err);
                     res.send(err);
                 } else {
                     res.send({ msg: "Aviso registrado" })
@@ -334,6 +334,74 @@ app.delete('/avisos/deletar-todos', (req, res) => {
     );
 });
 
+app.post('/registroHolerite/:id', async (req, res) => {
+    const idFuncionario = req.params.id;
+    const resultadoSalarioBase = await pegarSalarioBase(idFuncionario);
+    const valorHorasExtras = await pegarHorasExtras(idFuncionario, resultadoSalarioBase.salario_base, resultadoSalarioBase.carga_horaria);
+    const descontos = await calcularDescontos(resultadoSalarioBase.salario_base);
+    const valorTotal = resultadoSalarioBase.salario_base + valorHorasExtras - descontos;
+    valorTotalFixado = valorTotal.toFixed(2);
+    db.query(
+        'SELECT DISTINCT mes FROM tbhorasextras WHERE id_funcionario = ? AND mes = MONTH(CURDATE())',
+        [idFuncionario],
+        (err, result) => {
+            if (err) {
+                console.error(err);
+                res.send(err);
+            } else if (result.length > 0) {
+                // Iterar sobre cada registro único de mês encontrado
+                result.forEach((row) => {
+                    const mes = row.mes; // Valor do mês recuperado da tabela
+                    const dataEmissao = `${mes}`;
+                    
+                    // Inserir um registro na tabela tbholerite para cada mês
+                    db.query(
+                        'INSERT INTO tbholerite (id_funcionario, mes_emissao, valor, desconto) VALUES (?, ?, ?, ?)',
+                        [idFuncionario, dataEmissao, valorTotalFixado, descontos],
+                        (err, result) => {
+                            if (err) {
+                                console.error("Erro ao adicionar valor holerite", err);
+                                res.send(err);
+                            }
+                        }
+                    );
+                });
+
+                res.send({ msg: 'Valores registrados no holerite com sucesso' });
+            } else {
+                res.send({ msg: 'Não foi possível encontrar o mês na tabela de horas extras' });
+            }
+        }
+    );
+});
+
+
+
+
+app.get('/holerite/:id', (req, res) => {
+    const idFuncionario = req.params.id;
+    db.query(
+        'SELECT tbholerite.valor, tbfuncionario.nome, tbcargo.salario_base, tbcargo.carga_horaria, tbhorasextras.quantidade_horas_extras, tbholerite.mes_emissao, tbholerite.desconto ' +
+        'FROM tbholerite ' +
+        'INNER JOIN tbfuncionario ON tbholerite.id_funcionario = tbfuncionario.id ' +
+        'INNER JOIN tbcargo ON tbfuncionario.id_cargo = tbcargo.id ' +
+        'LEFT JOIN tbhorasextras ON tbholerite.id_funcionario = tbhorasextras.id_funcionario ' +
+        'WHERE tbholerite.id_funcionario = ?',
+        [idFuncionario],
+        (err, result) => {
+            if (err) {
+                console.error(err);
+            } else {
+                res.send(result);
+            }
+        }
+    );
+});
+
+
+
+
+
 async function main() {
 
     app.listen(3001, () => {
@@ -341,6 +409,7 @@ async function main() {
     });
     
     await calcularHorasTrabalhadasEsteMes(7);
+    
 }
 
 main();

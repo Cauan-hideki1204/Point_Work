@@ -155,6 +155,61 @@ async function calcularHorasTrabalhadasEsteMes(idFuncionario) {
     )
 }
 
+function pegarSalarioBase(idFuncionario) {
+    return new Promise((resolve, reject) => {
+        db.query('SELECT id_cargo FROM tbfuncionario WHERE id = ?', [idFuncionario], (err, result) => {
+            if (err) {
+                reject(err);
+            } else {
+                const idCargo = result[0].id_cargo;
+                db.query('SELECT salario_base, carga_horaria FROM tbcargo WHERE id = ?', [idCargo], (err, result) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(result[0]);
+                    }
+                });
+            }
+        });
+    });
+}
+
+function pegarHorasExtras(idFuncionario, salarioBase, cargaHoraria) {
+    return new Promise((resolve, reject) => {
+        db.query('SELECT quantidade_horas_extras FROM tbhorasextras WHERE id_funcionario = ? AND mes = ?', [idFuncionario, mes], (err, result) => {
+            if (err) {
+                reject(err);
+            } else {
+                const quantidadeHorasExtras = result[0].quantidade_horas_extras;
+                const valorPorHoraExtra = (salarioBase / cargaHoraria) * 0.7;
+                const valorHorasExtras = valorPorHoraExtra * quantidadeHorasExtras;
+                resolve(valorHorasExtras);
+            }
+        });
+    });
+}
+
+function calcularDescontos(salarioBase) {
+    return new Promise((resolve, reject) => {
+      if (salarioBase <= 1045) {
+        const descontoINSS = salarioBase * 0.075;
+        resolve(descontoINSS);
+      } else if (salarioBase <= 2089.6) {
+        const descontoINSS = (salarioBase - 1045) * 0.09 + 1045 * 0.075;
+        resolve(descontoINSS);
+      } else if (salarioBase <= 3134.4) {
+        const descontoINSS = (salarioBase - 2089.6) * 0.12 + 1045 * 0.075 + (2089.6 - 1045) * 0.09;
+        resolve(descontoINSS);
+      } else if (salarioBase <= 6101.06) {
+        const descontoINSS = (salarioBase - 3134.4) * 0.14 + 1045 * 0.075 + (2089.6 - 1045) * 0.09 + (3134.4 - 2089.6) * 0.12;
+        resolve(descontoINSS);
+      } else {
+        const descontoINSS = 713.1; // Valor máximo de desconto do INSS
+        resolve(descontoINSS);
+      }
+    });
+  }
+  
 
 
 const hoje = new Date();
@@ -163,4 +218,7 @@ const mes = hoje.getMonth() + 1;
 
 module.exports = {
     calcularHorasTrabalhadasEsteMes,
+    pegarSalarioBase,
+    pegarHorasExtras,
+    calcularDescontos,
 };
