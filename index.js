@@ -57,7 +57,6 @@ app.post("/registrar", (req, res) => {
     const cpf = req.body.cpf;
     const idCargo = req.body.cargo;
     const dataAdimissao = req.body.admissao;
-    const dataDemissao = req.body.demissao;
 
     db.query("SELECT * FROM tbfuncionario WHERE email = ?", [email],
         (err, result) => {
@@ -67,8 +66,8 @@ app.post("/registrar", (req, res) => {
             if (result.length == 0) {
                 bcrypt.hash(senha, saltRounds, (err, hash) => {
                     db.query(
-                        "INSERT INTO tbfuncionario (nome, email, senha, cpf, id_cargo, data_admissao, data_demissao) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                        [nome, email, hash, cpf, idCargo, dataAdimissao, dataDemissao],
+                        "INSERT INTO tbfuncionario (nome, email, senha, cpf, id_cargo, data_admissao) VALUES (?, ?, ?, ?, ?, ?)",
+                        [nome, email, hash, cpf, idCargo, dataAdimissao],
                         (err, result) => {
                             if (err) {
                                 res.send(err);
@@ -91,6 +90,8 @@ app.post('/login', (req, res) => {
 
     db.query("SELECT * FROM tbfuncionario WHERE email = ?", [email],
         (err, result) => {
+            const id = result[0].id
+            
             if (err) {
                 res.send(err);
             }
@@ -100,7 +101,10 @@ app.post('/login', (req, res) => {
                         res.send(err);
                     }
                     if (result) {
-                        res.send({ msg: "Usuário logado com sucesso" })
+                        res.send({
+                            msg: "Usuário logado com sucesso",
+                            id: id,
+                        })
                     } else {
                         res.send({ msg: "Senha incorreta" })
                     }
@@ -375,32 +379,15 @@ app.post('/registroHolerite/:id', async (req, res) => {
     );
 });
 
-
-
-
-app.get('/holerite/:id', (req, res) => {
-    const idFuncionario = req.params.id;
-    db.query(
-        'SELECT tbholerite.valor, tbfuncionario.nome, tbcargo.salario_base, tbcargo.carga_horaria, tbhorasextras.quantidade_horas_extras, tbholerite.mes_emissao, tbholerite.desconto ' +
-        'FROM tbholerite ' +
-        'INNER JOIN tbfuncionario ON tbholerite.id_funcionario = tbfuncionario.id ' +
-        'INNER JOIN tbcargo ON tbfuncionario.id_cargo = tbcargo.id ' +
-        'LEFT JOIN tbhorasextras ON tbholerite.id_funcionario = tbhorasextras.id_funcionario ' +
-        'WHERE tbholerite.id_funcionario = ?',
-        [idFuncionario],
-        (err, result) => {
-            if (err) {
-                console.error(err);
-            } else {
-                res.send(result);
-            }
-        }
-    );
+app.get('/holerite', (req, res) => {
+    res.send({
+        nome: 'Cauan Hideki Nunes Fumoto',
+        cargo: 'Desenvolvedor',
+        salario: 8000,
+        descontos: ['INSS (11%)', 'Imposto de Renda (15%)'],
+        beneficios: ['Vale Refeição - R$ 500.00', 'Plano de Saúde - R$ 500.00'],
+    })
 });
-
-
-
-
 
 async function main() {
 
